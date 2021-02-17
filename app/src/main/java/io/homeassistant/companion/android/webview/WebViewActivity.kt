@@ -75,11 +75,15 @@ import io.homeassistant.companion.android.settings.language.LanguagesManager
 import io.homeassistant.companion.android.themes.ThemesManager
 import io.homeassistant.companion.android.util.DisabledLocationHandler
 import io.homeassistant.companion.android.util.isStarted
-import javax.inject.Inject
 import kotlinx.android.synthetic.main.activity_webview.*
 import kotlinx.android.synthetic.main.exo_playback_control_view.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
+import javax.inject.Inject
 
 class WebViewActivity : BaseActivity(), io.homeassistant.companion.android.webview.WebView {
 
@@ -103,6 +107,8 @@ class WebViewActivity : BaseActivity(), io.homeassistant.companion.android.webvi
 
         private const val CONNECTION_DELAY = 10000L
     }
+
+    private val mainScope: CoroutineScope = CoroutineScope(Dispatchers.Main + Job())
 
     @Inject
     lateinit var presenter: WebViewPresenter
@@ -195,6 +201,8 @@ class WebViewActivity : BaseActivity(), io.homeassistant.companion.android.webvi
 
         decor = window.decorView as FrameLayout
 
+        var activity: WebViewActivity = this
+
         webView = findViewById(R.id.webview)
         webView.apply {
             setOnTouchListener { _, motionEvent ->
@@ -211,19 +219,22 @@ class WebViewActivity : BaseActivity(), io.homeassistant.companion.android.webvi
                     view: WebView?,
                     request: ClientCertRequest?
                 ) {
-                    Log.d(TAG, "onReceivedClientCertRequest: view: $view request:$request")
-                    KeyChain.choosePrivateKeyAlias(
-                        activity, object : KeyChainAliasCallback {
-                            override fun alias(alias: String?) {
-                                if (alias == null) {
-                                    request!!.cancel()
-                                    return
+                    mainScope.launch {
+                        Log.d(TAG, "onReceivedClientCertRequest: view: $view request:$request")
+                        KeyChain.choosePrivateKeyAlias(
+                            activity, object : KeyChainAliasCallback {
+                                override fun alias(alias: String?) {
+                                    Log.d(TAG, "onReceivedClientCertRequest: alias: $alias")
+                                    if (alias == null) {
+                                        request!!.cancel()
+                                        return
+                                    }
+                                    KeyChainLookup(activity, request!!, alias).execute()
                                 }
-                                KeyChainLookup(activity, request!!, alias).execute()
-                            }
-                        }, request!!.keyTypes, request.principals, request.host,
-                        request!!.port, null
-                    )
+                            }, request!!.keyTypes, request.principals, request.host,
+                            request!!.port, null
+                        )
+                    }
                 }
 
                 override fun onReceivedError(
