@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.core.content.getSystemService
 import io.homeassistant.companion.android.common.R
 import io.homeassistant.companion.android.common.notifications.NotificationData
+import java.util.Locale
 import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,8 @@ class TextToSpeechClient(private val applicationContext: Context, private val te
      *
      * If [data] also contains [NotificationData.MEDIA_STREAM] key and it's one of [NotificationData.ALARM_STREAMS], an [AudioManager.STREAM_ALARM] will be used for playback.
      * Additionally, if it's specifically [NotificationData.ALARM_STREAM_MAX], the channel's volume will be maximized during playback.
+     * If [data] contains a [TextToSpeechData.TTS_LANGUAGE] key (an IETF language tag such as `en-GB`), the message is
+     * spoken in that language rather than the engine's default.
      */
     fun speakText(data: Map<String, String>) {
         mainScope.launch {
@@ -54,6 +57,7 @@ class TextToSpeechClient(private val applicationContext: Context, private val te
                     text = tts,
                     streamVolumeAdjustment = streamVolumeAdjustment,
                     audioAttributes = audioAttributes,
+                    locale = data[TextToSpeechData.TTS_LANGUAGE]?.takeIf { it.isNotBlank() }?.let(Locale::forLanguageTag),
                 ),
             )
             if (!isPlaying) {

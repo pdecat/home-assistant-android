@@ -45,6 +45,12 @@ class AndroidTextToSpeechEngine(private val applicationContext: Context) : TextT
                 continuation.resume(Result.failure(IllegalStateException("TextToSpeechEngine not initialized.")))
             } else {
                 textToSpeech.setAudioAttributes(utterance.audioAttributes)
+                // The engine keeps its language between utterances, so go back to the default voice explicitly
+                if (utterance.locale == null) {
+                    textToSpeech.defaultVoice?.let { textToSpeech.voice = it }
+                } else if (textToSpeech.setLanguage(utterance.locale) < TextToSpeech.LANG_AVAILABLE) {
+                    Timber.w("Language ${utterance.locale} is not available, speaking in the current one")
+                }
                 val listener = object : UtteranceProgressListener() {
                     override fun onStart(p0: String?) {
                         utterance.streamVolumeAdjustment.overrideVolume()

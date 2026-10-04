@@ -2,10 +2,12 @@ package io.homeassistant.companion.android.common.util.tts
 
 import android.media.AudioAttributes
 import android.media.AudioManager
+import java.util.Locale
 
 object TextToSpeechData {
     const val TTS = "TTS"
     const val TTS_TEXT = "tts_text"
+    const val TTS_LANGUAGE = "tts_language"
 
     const val COMMAND_STOP_TTS = "command_stop_tts"
 }
@@ -45,12 +47,14 @@ interface TextToSpeechEngine {
  * @param streamVolumeAdjustment utility object to adjust the volume ahead of this utterance's playback,
  * and reset it back after it's finished
  * @param audioAttributes attributes to be set for the media player responsible for the audio playback
+ * @param locale language to synthesize [text] in, or null for the engine's default voice
  */
 data class Utterance(
     val id: String,
     val text: String,
     val streamVolumeAdjustment: StreamVolumeAdjustment,
     val audioAttributes: AudioAttributes,
+    val locale: Locale? = null,
 )
 
 /**
